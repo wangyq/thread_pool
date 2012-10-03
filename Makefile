@@ -13,7 +13,7 @@ MAIN_FILE = test_thread
 
 # module define
 #SRC_MODULES = main conf ca comm pm utils ic reg timer 
-SRC_MODULES = thread_pool 
+SRC_MODULES = thread_pool util
 
 #=================================================
 #directory define

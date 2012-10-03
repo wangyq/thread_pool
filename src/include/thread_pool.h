@@ -1,52 +1,51 @@
-﻿#include <unistd.h> 
-#include <sys/types.h> 
-#include <pthread.h> 
-#include <assert.h> 
+#include <unistd.h>
+#include <sys/types.h>
+#include <pthread.h>
+#include <assert.h>
+#include "queue.h"
+
+#ifndef THREAD_POOL_H
+#define THREAD_POOL_H
 
 
-/* 
-*线程池里所有运行和等待的任务都是一个CThread_worker 
-*由于所有任务都在链表里，所以是一个链表结构 
-*/ 
-typedef struct worker 
-{ 
-    /*回调函数，任务运行时会调用此函数，注意也可声明成其它形式*/ 
-    void *(*process) (void *arg); 
-    void *arg;/*回调函数的参数*/ 
-    struct worker *next; 
+/**
+ * Task function definition
+ *
+ */
+typedef void* (*PTaskFun)(void* arg);
 
 
-} CThread_worker; 
+typedef struct tag_thread_pool{
+	pthread_t *threadid;  //running thread's id
+	int max_size;   //最大线程池容量
+	int cur_size;   //当前的线程数目
+	int busy_size;  //当前忙碌的线程数目
+	int lazy_init;  //是否使用lazy_init 功能
+
+	PQueue task_queue;    //Task's queue
+	pthread_mutex_t task_lock; //lock to access Task's queue
+	pthread_cond_t task_ready; // tell thread_pool that has already task
 
 
+	/*是否销毁线程池*/
+	int is_shutdown;
+}ThreadPool, *PThreadPool;
 
+/**
+ *
+ *
+ *
+ */
+PThreadPool thread_pool_init(int max_size, int lazy_init);
 
-/*线程池结构*/ 
-typedef struct 
-{ 
-     pthread_mutex_t queue_lock; 
-     pthread_cond_t queue_ready; 
+/**
+ *
+ *
+ */
+void thread_pool_destroy(PThreadPool pool);
 
-
-    /*链表结构，线程池中所有等待任务*/ 
-     CThread_worker *queue_head; 
-
-
-    /*是否销毁线程池*/ 
-    int shutdown; 
-     pthread_t *threadid; 
-    /*线程池中允许的活动线程数目*/ 
-    int max_thread_num; 
-    /*当前等待队列的任务数目*/ 
-    int cur_queue_size; 
-
-
-} CThread_pool; 
-
+int thread_pool_add_task(PThreadPool pool,PTaskFun fun, void* arg);
 
 
 
-int pool_add_worker (void *(*process) (void *arg), void *arg); 
-void *thread_routine (void *arg); 
-void pool_init(int max_thread_num);
-int pool_destroy();
+#endif
