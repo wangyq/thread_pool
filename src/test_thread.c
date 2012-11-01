@@ -2,10 +2,50 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <assert.h>
+#include <signal.h>
 
 #include "thread_pool.h"
 #include "cthread_pool.h"
 #include "queue.h"
+
+//程序退出前销毁资源
+void destroy_app(int exit_no);
+
+
+static void mysignal_handler(int signo)
+{
+	printf("Caught signal = %s! signo = %d \n", sys_siglist[signo], signo);
+	switch( signo ){
+		case SIGINT:
+			destroy_app( EXIT_SUCCESS);
+			break;
+		case SIGTERM:
+			destroy_app( EXIT_SUCCESS);
+			break;
+
+		default:
+			destroy_app( EXIT_FAILURE );
+			break;
+	}
+}
+
+void init_signal()
+{
+	if( SIG_ERR == signal(SIGINT, mysignal_handler) ){
+		printf(" Handle signal 'SIGINT' error!\n");
+		exit( EXIT_FAILURE);
+	}
+	if( SIG_ERR == signal(SIGTERM, mysignal_handler) ){
+		printf(" Handle signal 'SIGTERM' error!\n");
+		exit( EXIT_FAILURE);
+	}
+
+}
+
+void destroy_app(int exit_no)
+{
+	exit( exit_no );
+}
 
 void* mytask(void* arg)
 {
@@ -101,13 +141,19 @@ void test_pool()
 	}
 
 	/*等待所有任务完成*/
-	sleep (5);
+	thread_pool_await_finished(pool);
 	thread_pool_destroy(pool);
+	//sleep(3);
 }
 
 int main (int argc, char **argv)
-{ 
-	//test_threads();
+{
+	init_signal();
+	 
+	test_threads();
 	test_pool();
-    return 0; 
+	
+	//for(;;) pause();
+
+	return 0; 
 } 

@@ -25,10 +25,12 @@ typedef struct tag_thread_pool{
 	PQueue task_queue;    //Task's queue
 	pthread_mutex_t task_lock; //lock to access Task's queue
 	pthread_cond_t task_ready; // tell thread_pool that has already task
+	pthread_cond_t task_finished; // tell await thread  that all tasks has being finished!
 
 
 	/*是否销毁线程池*/
 	int is_shutdown;
+	int is_finished; //all tasks has being finished
 }ThreadPool, *PThreadPool;
 
 /**
@@ -45,6 +47,8 @@ PThreadPool thread_pool_init(int max_size, int lazy_init);
 void thread_pool_destroy(PThreadPool pool);
 
 int thread_pool_add_task(PThreadPool pool,PTaskFun fun, void* arg);
+
+void thread_pool_await_finished(PThreadPool pool);
 
 
 

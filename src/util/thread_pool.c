@@ -21,6 +21,11 @@ static void* thread_pool_routine(void *arg) {
 		while (queue_is_empty(pool->task_queue) && !pool->is_shutdown) {
 			printf("Pool=%p 's  thread 0x%x is waiting\n", (void*) pool,(int) pthread_self());
 
+			if( !pool->is_finished ){
+				pool->is_finished = 1;
+				pthread_cond_signal(&(pool->task_finished));//唤醒等待线程
+
+			}
 			//must lock before call this funcion.
 			//check the shared variable "task_ready" protected by "task_lock",
 			//and unlock "queue_lock" when go into sleep.
@@ -32,7 +37,7 @@ static void* thread_pool_routine(void *arg) {
 		if (pool->is_shutdown) {
 			/*遇到break,continue,return等跳转语句，千万不要忘记先解锁*/
 			pthread_mutex_unlock(&(pool->task_lock));
-			printf("Pool=%p 's thread 0x%x will exit\n", (void*) pool,	(int) pthread_self());
+			printf("Pool=%p 's thread 0x%x will exit\n", (void*) pool,(int) pthread_self());
 			pthread_exit(NULL);
 		}
 
@@ -55,7 +60,31 @@ static void* thread_pool_routine(void *arg) {
 	pthread_exit(NULL);
 }
 
+/**
+ * 调用线程阻塞, 直到所有任务结束, 此函数才返回.
+ *
+ */
+void thread_pool_await_finished(PThreadPool pool)
+{
+	pthread_mutex_lock(&(pool->task_lock)); //获取锁
+	pthread_cond_wait(&(pool->task_finished), &(pool->task_lock)); //等待task finished!
+	pthread_mutex_unlock(&(pool->task_lock));//释放锁
+}
+
 void thread_pool_destroy(PThreadPool pool) {
+	int i = 0;
+
+	//pthread_mutex_lock(&(pool->task_lock)); //获取锁 no need to do this!
+	pool->is_shutdown = 1;                  //结束线程
+	pthread_cond_broadcast(&(pool->task_ready));
+	//pthread_mutex_unlock(&(pool->task_lock));//释放锁
+
+	//here maybe we should wait thread to terminated using thread_join() call.
+	//or using sleep() call
+	for ( i=0; i<pool->max_size; i++ ){
+		pthread_join(pool->threadid[i], NULL);
+	}
+
 	if (NULL != pool) {
 		queue_destroy(pool->task_queue);
 		free(pool->threadid);
@@ -86,10 +115,12 @@ PThreadPool thread_pool_init(int max_size, int lazy_init) {
 
 	pool->max_size = max_size;
 	pool->is_shutdown = 0;
+	pool->is_finished = 0;
 
 	//init parameter
 	pthread_mutex_init(&(pool->task_lock), NULL);
 	pthread_cond_init(&(pool->task_ready), NULL);
+	pthread_cond_init(&(pool->task_finished), NULL);
 
 	int i = 0;
 	for (i = 0; i < pool->max_size; i++) {
@@ -108,11 +139,13 @@ int thread_pool_add_task(PThreadPool pool, PTaskFun fun, void* arg) {
 	//
 	pthread_mutex_lock(&(pool->task_lock));
 	queue_push(pool->task_queue, (void*) &task);
-	pthread_mutex_unlock(&(pool->task_lock));
+	pool->is_finished = 0;                     //结束条件为0
 
 	/*好了，等待队列中有任务了，唤醒一个等待线程；
 	 注意如果所有线程都在忙碌，这句没有任何作用*/
 	pthread_cond_signal(&(pool->task_ready));
+	
+	pthread_mutex_unlock(&(pool->task_lock));//释放锁
 
 	return 1;
 
