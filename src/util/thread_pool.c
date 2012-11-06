@@ -81,18 +81,19 @@ void thread_pool_await_finished(PThreadPool pool)
 void thread_pool_destroy(PThreadPool pool) {
 	int i = 0;
 
-	//pthread_mutex_lock(&(pool->task_lock)); //获取锁 no need to do this!
-	pool->is_shutdown = 1;                  //结束线程
-	pthread_cond_broadcast(&(pool->task_ready));
-	//pthread_mutex_unlock(&(pool->task_lock));//释放锁
-
-	//here maybe we should wait thread to terminated using thread_join() call.
-	//or using sleep() call
-	for ( i=0; i<pool->max_size; i++ ){
-		pthread_join(pool->threadid[i], NULL);
-	}
-
 	if (NULL != pool) {
+		//pthread_mutex_lock(&(pool->task_lock)); //获取锁 no need to do this!
+		pool->is_shutdown = 1;                  //结束线程
+		pthread_cond_broadcast(&(pool->task_ready));
+		//pthread_mutex_unlock(&(pool->task_lock));//释放锁
+
+		//here maybe we should wait thread to terminated using thread_join() call.
+		//or using sleep() call
+		for ( i=0; i<pool->max_size; i++ ){
+			pthread_join(pool->threadid[i], NULL);
+		}
+
+		//free memory!
 		queue_destroy(pool->task_queue);
 		free(pool->threadid);
 		free(pool);
