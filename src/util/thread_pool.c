@@ -8,18 +8,25 @@ typedef struct tag_task {
 	void* arg;
 } Task, *PTask;
 
+/**
+ *
+ *
+ */
 static void* thread_pool_routine(void *arg) {
-	if (NULL == arg)
+	
+	if (NULL == arg){
 		return NULL;
+	}
+	
 	PThreadPool pool = (PThreadPool) arg;
 
-	printf("starting Pool=%p 's thread 0x%x\n", (void*) pool,(int) pthread_self());
+	//printf("starting Pool=%p 's thread 0x%x\n", (void*) pool,(int) pthread_self());
 	while (1) {
 		pthread_mutex_lock(&(pool->task_lock));
 		/*如果等待队列为0并且不销毁线程池，则处于阻塞状态; 注意 
 		 pthread_cond_wait是一个原子操作，等待前会解锁，唤醒后会加锁*/
 		while (queue_is_empty(pool->task_queue) && !pool->is_shutdown) {
-			printf("Pool=%p 's  thread 0x%x is waiting\n", (void*) pool,(int) pthread_self());
+			//printf("Pool=%p 's  thread 0x%x is waiting\n", (void*) pool,(int) pthread_self());
 
 			if( !pool->is_finished ){
 				pool->is_finished = 1;
@@ -37,11 +44,11 @@ static void* thread_pool_routine(void *arg) {
 		if (pool->is_shutdown) {
 			/*遇到break,continue,return等跳转语句，千万不要忘记先解锁*/
 			pthread_mutex_unlock(&(pool->task_lock));
-			printf("Pool=%p 's thread 0x%x will exit\n", (void*) pool,(int) pthread_self());
+			//printf("Pool=%p 's thread 0x%x will exit\n", (void*) pool,(int) pthread_self());
 			pthread_exit(NULL);
 		}
 
-		printf("Pool=%p 's thread 0x%x is going to work\n", (void*) pool,(int) pthread_self());
+		//printf("Pool=%p 's thread 0x%x is going to work\n", (void*) pool,(int) pthread_self());
 
 		/*assert是调试的好帮手*/
 		assert(!queue_is_empty(pool->task_queue));
@@ -49,8 +56,8 @@ static void* thread_pool_routine(void *arg) {
 		/*等待队列长度减去1，并取出链表中的头元素*/
 		//这里必须拷贝出任务，方能执行
 		Task task = *((PTask) queue_pop(pool->task_queue));
-		pthread_mutex_unlock(&(pool->task_lock));
 
+		pthread_mutex_unlock(&(pool->task_lock)); //first unlock and then exec task!
 		//assert( NULL != ptask );
 		/*调用回调函数，执行任务*/
 		((task.fun))(task.arg);

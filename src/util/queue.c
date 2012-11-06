@@ -90,7 +90,7 @@ int queue_push(PQueue pqueue, void * data)
 			}
 		}
 		//just for test!
-		printf("重新分配内存, 原来大小=%d, 增量=%d \n", pqueue->capacity, pqueue->incsize);
+		//printf("重新分配内存, 原来大小=%d, 增量=%d \n", pqueue->capacity, pqueue->incsize);
 
 		//free old memory!
 		free(pqueue->data);

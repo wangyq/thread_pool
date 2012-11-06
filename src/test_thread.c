@@ -50,11 +50,11 @@ void destroy_app(int exit_no)
 void* mytask(void* arg)
 {
 	int v = 0;
-     printf ("threadid is 0x%x, working on task %ld\n", (int)pthread_self(),(long) arg);
+    printf ("threadid is 0x%x, working on task %ld\n", (int)pthread_self(),(long) arg);
 
-     sleep (1);/*休息一秒，延长任务的执行时间*/
+    sleep (1);/*休息一秒，延长任务的执行时间*/
 
-    PQueue pq = queue_init(sizeof(int) , 1,2);
+    PQueue pq = queue_init(sizeof(int) , 0,0);
     v=2; queue_push(pq,(void*)&v);
     v=0; queue_push(pq,(void*)&v);
     v=7; queue_push(pq,(void*)&v);
@@ -69,7 +69,7 @@ void* mytask(void* arg)
     }
     printf("\n");
 
-     sleep (1);/*休息一秒，延长任务的执行时间*/
+    sleep (1);/*休息一秒，延长任务的执行时间*/
 
 	//must destroy!
      queue_destroy(pq);
@@ -82,7 +82,7 @@ void * myprocess (void *arg)
 	int v = 0; 
      printf ("threadid is 0x%x, working on task %d\n", (int)pthread_self(),*(int *) arg); 
 
-     sleep (1);/*休息一秒，延长任务的执行时间*/ 
+     //sleep (1);/*休息一秒，延长任务的执行时间*/ 
 
     PQueue pq = queue_init(sizeof(int) , 1,2);
     v=2; queue_push(pq,(void*)&v);
@@ -99,7 +99,7 @@ void * myprocess (void *arg)
     }
     printf("\n");
      
-     sleep (1);/*休息一秒，延长任务的执行时间*/ 
+     //sleep (1);/*休息一秒，延长任务的执行时间*/ 
 
 	//must destroy!
      queue_destroy(pq);
@@ -150,7 +150,7 @@ int main (int argc, char **argv)
 {
 	init_signal();
 	 
-	test_threads();
+	//test_threads();
 	test_pool();
 	
 	//for(;;) pause();
